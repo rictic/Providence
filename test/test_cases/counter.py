@@ -1,16 +1,17 @@
-# statesave.py - Test single VR checkpointing
 from river.core.vr import VR
 
-class Hello(VR):
-    
-    def counter(self):
-        j = 0
-        for i in range(10):
-            j += i
-    
+n = 1000
+
+def counter():
+    """Count up to n and keep a running sum of values so far"""
+    j = 0
+    for i in range(n):
+        j += i
+
+class CounterRunner(VR):
     def main(self):
         """Call counter, but also include some computation outside of counter()"""
         k = 0
-        for i in range(10): k += 1
-        self.counter()
-        for i in range(10): k += 1
+        for i in range(n): k += 1
+        counter()
+        for i in range(n): k += 1

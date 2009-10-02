@@ -1,9 +1,18 @@
 import cPickle as pickle
 from river.core.vr import VR
 from river.core.objdump import objdump
+from sys import stderr
 
 STATE_VR_IGNORE_ATTRS = ['atomic', 'keys', 'parent', 'state_enabled',
     'sysvr', 't', 'vm', 'vri']
+
+class InvalidResult(object):
+    def __init__(self, exception=None):
+        pass
+        
+class InvalidState(object):
+    def __init__(self, exception=None):
+        pass
 
 class dumpstate(VR):
     def main(self):
@@ -17,45 +26,37 @@ class dumpstate(VR):
             print 'usage: dumpstate <filename> [<index>]'
             return False
         
-        if len(argv) > 0:
-            index = int(argv[0])
+        with open(filename, 'r') as state_file:
+            self.index = pickle.load(state_file)
         
-        state_file = open(filename, 'r')
-        si= pickle.load(state_file)
-        state_file.close()
+        results = self.get_watch_results(argv)
+        with open(filename+".csv",'w') as csv_file:
+            print >> csv_file, ",".join(argv)
+            for result in results:
+                if (type(result) is InvalidState):
+                    print >> stderr, repr(result)
+                    continue
+                print result
+                print >> csv_file, ",".join(str(x) for x in result)
 
-        print 'State Info:'
-        print 'UUID   :', str(si['uuid'])
-        print 'APPID  :', str(si['appid'])
-        print 'MODULE :', si['module']
-        #print 'MODULE :', si['filename']
-        print 'START  :', si['start']
-        print 'END    :', si['end']
-        print 'COUNT  :', si['count']
-        
-        if index is not None:
-            states = si['states']
-            print 'State Index %d:' % index
-            vr = pickle.loads(states[index])
-            vr.vri = None
-            vr.vm = None
-            objdump(vr)
-            objdump(vr.t)
-            objdump(vr.t.frame)
-            #@self.dump_state(vr)
-            del vr.t
-
-    def dump_state(self, vr):
-        self.objhash = {}
-        self.dump_vr_state(vr)
-        self.dump_tasklet_state(vr.t)
-        
-    def dump_vr_state(self):
-        pass
-        
-    def dump_frame(self):
-        pass
-        
-    def dump_tasklet_state(self):
-        pass
-    
+    def get_watch_results(self, watches):
+        for i in range(len(self.index['states'])):
+            state_str = self.index['states'][i]
+            try:
+                state = pickle.loads(state_str)
+            except Exception, e:
+                yield InvalidState(e)
+                continue
+            yield self.get_watches(watches, state)
+            
+    def get_watches(self, watches, state):
+        if (not (state and state.t and state.t.frame)):
+            return InvalidState()
+#         print (state.t.frame.f_locals)
+        results = []
+        for watch in watches:
+            try:
+                results.append(eval(watch, state.t.frame.f_globals, state.t.frame.f_locals))
+            except Exception, e:
+                results.append(InvalidResult(e))
+        return results
