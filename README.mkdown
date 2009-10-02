@@ -1,0 +1,3 @@
+This code is rather experimental and is currently all wrapped up in Greg Benson's River library on top of a custom version of stackless python.  Needless to say, it's not at a state where it's easy to pick it up and get it running.  
+
+Step one is getting something interesting at all.
