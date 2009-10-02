@@ -26,18 +26,20 @@ class dumpstate(VR):
             print 'usage: dumpstate <filename> [<index>]'
             return False
         
-        with open(filename, 'r') as state_file:
-            self.index = pickle.load(state_file)
+        state_file = open(filename, 'r')
+        self.index = pickle.load(state_file)
+        state_file.close()
         
         results = self.get_watch_results(argv)
-        with open(filename+".csv",'w') as csv_file:
-            print >> csv_file, ",".join(argv)
-            for result in results:
-                if (type(result) is InvalidState):
-                    print >> stderr, repr(result)
-                    continue
-                print result
-                print >> csv_file, ",".join(str(x) for x in result)
+        csv_file = open(filename+".csv",'w')
+        print >> csv_file, ",".join(argv)
+        for result in results:
+            if (type(result) is InvalidState):
+                print >> stderr, repr(result)
+                continue
+            print result
+            print >> csv_file, ",".join(str(x) for x in result)
+        csv_file.close()
 
     def get_watch_results(self, watches):
         for i in range(len(self.index['states'])):
@@ -52,7 +54,7 @@ class dumpstate(VR):
     def get_watches(self, watches, state):
         if (not (state and state.t and state.t.frame)):
             return InvalidState()
-#         print (state.t.frame.f_locals)
+        objdump(state.t.frame.f_code)
         results = []
         for watch in watches:
             try:
